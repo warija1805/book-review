@@ -8,7 +8,9 @@ export const addReview = async (req, res) => {
 
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     if (!bookId || !rating) {
-      return res.status(400).json({ message: "bookId and rating are required" });
+      return res
+        .status(400)
+        .json({ message: "bookId and rating are required" });
     }
 
     const book = await Book.findById(bookId);
@@ -17,19 +19,40 @@ export const addReview = async (req, res) => {
     const review = await Review.create({ bookId, userId, rating, comment });
     return res.status(201).json({ message: "Review added", review });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to add review", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Failed to add review", error: error.message });
   }
 };
 
 export const getReviewsForBook = async (req, res) => {
   try {
     const { bookId } = req.params;
-    const reviews = await Review.find({ bookId }).populate("userId", "name email").sort({ createdAt: -1 });
-    return res.status(200).json({ reviews });
+    const reviews = await Review.find({ bookId })
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+    return res.status(200).json(reviews);
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch reviews", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch reviews", error: error.message });
   }
 };
 
+export const getUserReviews = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
 
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+    const reviews = await Review.find({ userId })
+      .populate("bookId", "title author description")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json(reviews);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch user reviews", error: error.message });
+  }
+};

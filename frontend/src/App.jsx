@@ -1,17 +1,22 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Header from './components/Header';
-import BookList from './pages/BookList';
-import BookDetails from './pages/BookDetails';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import MyReviews from './pages/MyReviews';
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Header from "./components/Header";
+import BookList from "./pages/BookList";
+import BookDetails from "./pages/BookDetails";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import MyReviews from "./pages/MyReviews";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -22,14 +27,14 @@ const ProtectedRoute = ({ children }) => {
       </div>
     );
   }
-  
+
   return isAuthenticated() ? children : <Navigate to="/login" replace />;
 };
 
 // Public Route Component (redirect to home if already logged in)
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -40,7 +45,7 @@ const PublicRoute = ({ children }) => {
       </div>
     );
   }
-  
+
   return isAuthenticated() ? <Navigate to="/" replace /> : children;
 };
 
@@ -52,35 +57,35 @@ const AppRoutes = () => {
         {/* Public Routes */}
         <Route path="/" element={<BookList />} />
         <Route path="/books/:id" element={<BookDetails />} />
-        
+
         {/* Auth Routes */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             <PublicRoute>
               <Login />
             </PublicRoute>
-          } 
+          }
         />
-        <Route 
-          path="/register" 
+        <Route
+          path="/register"
           element={
             <PublicRoute>
               <Register />
             </PublicRoute>
-          } 
+          }
         />
-        
+
         {/* Protected Routes */}
-        <Route 
-          path="/my-reviews" 
+        <Route
+          path="/my-reviews"
           element={
             <ProtectedRoute>
               <MyReviews />
             </ProtectedRoute>
-          } 
+          }
         />
-        
+
         {/* Catch all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -1,7 +1,7 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { FaBook, FaSignOutAlt, FaUser, FaHome } from 'react-icons/fa';
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { FiBook, FiUser, FiLogOut, FiLogIn } from "react-icons/fi";
 
 const Header = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -9,58 +9,58 @@ const Header = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
   };
 
   return (
-    <header className="bg-white shadow-md border-b">
+    <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <FaBook className="text-blue-600 text-2xl" />
-              <span className="text-xl font-bold text-gray-800">BookReview</span>
-            </Link>
-          </div>
-          
-          <nav className="flex items-center space-x-4">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-2">
+            <FiBook className="h-8 w-8 text-blue-600" />
+            <span className="text-xl font-bold text-gray-900">BookReview</span>
+          </Link>
+
+          {/* Navigation */}
+          <nav className="flex items-center space-x-6">
             <Link
               to="/"
-              className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors"
+              className="text-gray-700 hover:text-blue-600 transition-colors"
             >
-              <FaHome />
-              <span>Home</span>
+              Books
             </Link>
-            
+
             {isAuthenticated() ? (
               <>
                 <Link
                   to="/my-reviews"
-                  className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors"
+                  className="text-gray-700 hover:text-blue-600 transition-colors"
                 >
-                  <FaUser />
-                  <span>My Reviews</span>
+                  My Reviews
                 </Link>
-                <div className="flex items-center space-x-3">
-                  <span className="text-sm text-gray-600">
-                    Welcome, {user?.name}
-                  </span>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <FiUser className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-700">{user?.name}</span>
+                  </div>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center space-x-1 text-gray-600 hover:text-red-600 transition-colors"
+                    className="flex items-center space-x-1 text-gray-700 hover:text-red-600 transition-colors"
                   >
-                    <FaSignOutAlt />
+                    <FiLogOut className="h-4 w-4" />
                     <span>Logout</span>
                   </button>
                 </div>
               </>
             ) : (
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-gray-600 hover:text-blue-600 transition-colors"
+                  className="flex items-center space-x-1 text-gray-700 hover:text-blue-600 transition-colors"
                 >
-                  Login
+                  <FiLogIn className="h-4 w-4" />
+                  <span>Login</span>
                 </Link>
                 <Link
                   to="/register"

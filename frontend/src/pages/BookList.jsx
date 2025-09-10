@@ -1,67 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { booksAPI, reviewsAPI } from '../services/api';
-import BookCard from '../components/BookCard';
-import { FaSearch } from 'react-icons/fa';
+import React, { useState, useEffect } from "react";
+import { booksAPI } from "../services/api";
+import BookCard from "../components/BookCard";
+import { FiSearch, FiBook } from "react-icons/fi";
 
 const BookList = () => {
   const [books, setBooks] = useState([]);
-  const [filteredBooks, setFilteredBooks] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchBooks();
   }, []);
 
-  useEffect(() => {
-    filterBooks();
-  }, [searchTerm, books]);
-
   const fetchBooks = async () => {
     try {
       setLoading(true);
-      const response = await booksAPI.getAllBooks();
-      const booksWithRatings = await Promise.all(
-        response.books.map(async (book) => {
-          try {
-            const reviewsResponse = await reviewsAPI.getReviewsForBook(book._id);
-            const reviews = reviewsResponse.reviews;
-            const averageRating = reviews.length > 0 
-              ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-              : 0;
-            return { ...book, averageRating };
-          } catch (error) {
-            console.error(`Error fetching reviews for book ${book._id}:`, error);
-            return { ...book, averageRating: 0 };
-          }
-        })
-      );
-      setBooks(booksWithRatings);
-    } catch (error) {
-      setError('Failed to fetch books');
-      console.error('Error fetching books:', error);
+      const data = await booksAPI.getAllBooks();
+      // Ensure we always have an array
+      setBooks(Array.isArray(data) ? data : data.books || []);
+    } catch (err) {
+      setError("Failed to fetch books. Please try again later.");
+      console.error("Error fetching books:", err);
+      setBooks([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
   };
 
-  const filterBooks = () => {
-    if (!searchTerm.trim()) {
-      setFilteredBooks(books);
-      return;
-    }
-
-    const filtered = books.filter(book => 
-      book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredBooks(filtered);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
+  const filteredBooks = Array.isArray(books)
+    ? books.filter(
+        (book) =>
+          book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          book.author?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   if (loading) {
     return (
@@ -74,62 +47,60 @@ const BookList = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 text-lg">{error}</p>
-          <button 
-            onClick={fetchBooks}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Book Collection</h1>
-          
-          {/* Search Bar */}
-          <div className="relative max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaSearch className="h-5 w-5 text-gray-400" />
-            </div>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Discover Amazing Books
+          </h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Explore our collection of books and read reviews from fellow readers
+          </p>
+        </div>
+
+        {/* Search */}
+        <div className="max-w-md mx-auto mb-8">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <input
               type="text"
-              placeholder="Search books by title or author..."
+              placeholder="Search books or authors..."
               value={searchTerm}
-              onChange={handleSearchChange}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
 
-        {/* Books Grid */}
-        {filteredBooks.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
-              {searchTerm ? 'No books found matching your search.' : 'No books available.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredBooks.map((book) => (
-              <BookCard key={book._id} book={book} averageRating={book.averageRating} />
-            ))}
+        {/* Error Message */}
+        {error && (
+          <div className="max-w-2xl mx-auto mb-8">
+            <div className="bg-red-50 border border-red-200 rounded-md p-4">
+              <p className="text-red-600">{error}</p>
+            </div>
           </div>
         )}
 
-        {/* Results count */}
-        {searchTerm && (
-          <div className="mt-6 text-center text-gray-600">
-            Found {filteredBooks.length} book{filteredBooks.length !== 1 ? 's' : ''} matching "{searchTerm}"
+        {/* Books Grid */}
+        {filteredBooks.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredBooks.map((book) => (
+              <BookCard key={book._id} book={book} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <FiBook className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {searchTerm ? "No books found" : "No books available"}
+            </h3>
+            <p className="text-gray-600">
+              {searchTerm
+                ? "Try adjusting your search terms"
+                : "Check back later for new additions"}
+            </p>
           </div>
         )}
       </div>

@@ -1,104 +1,85 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { booksAPI, reviewsAPI } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import StarRating from '../components/StarRating';
-import { FaArrowLeft, FaUser, FaCalendarAlt } from 'react-icons/fa';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { booksAPI, reviewsAPI } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
+import ReviewCard from "../components/ReviewCard";
+import ReviewForm from "../components/ReviewForm";
+import { FiStar, FiUser, FiArrowLeft } from "react-icons/fi";
+import { Link } from "react-router-dom";
 
 const BookDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  
   const [book, setBook] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [reviewForm, setReviewForm] = useState({
-    rating: 0,
-    comment: '',
-  });
-  const [submittingReview, setSubmittingReview] = useState(false);
-  const [reviewError, setReviewError] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchBookDetails();
+    fetchReviews();
   }, [id]);
 
   const fetchBookDetails = async () => {
     try {
-      setLoading(true);
-      const [bookResponse, reviewsResponse] = await Promise.all([
-        booksAPI.getBookById(id),
-        reviewsAPI.getReviewsForBook(id)
-      ]);
-      
-      setBook(bookResponse.book);
-      setReviews(reviewsResponse.reviews);
-    } catch (error) {
-      setError('Failed to fetch book details');
-      console.error('Error fetching book details:', error);
+      const data = await booksAPI.getBookById(id);
+      setBook(data.book || data);
+    } catch (err) {
+      setError("Failed to fetch book details");
+      console.error("Error fetching book:", err);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const data = await reviewsAPI.getReviewsForBook(id);
+      setReviews(data);
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRatingChange = (rating) => {
-    setReviewForm({ ...reviewForm, rating });
-    setReviewError('');
-  };
-
-  const handleCommentChange = (e) => {
-    setReviewForm({ ...reviewForm, comment: e.target.value });
-    setReviewError('');
-  };
-
-  const handleSubmitReview = async (e) => {
-    e.preventDefault();
-    
-    if (!isAuthenticated()) {
-      setReviewError('Please login to submit a review');
-      return;
-    }
-
-    if (reviewForm.rating === 0) {
-      setReviewError('Please select a rating');
-      return;
-    }
-
+  const handleReviewSubmit = async (reviewData) => {
     try {
-      setSubmittingReview(true);
+      setReviewLoading(true);
       await reviewsAPI.addReview({
+        ...reviewData,
         bookId: id,
-        rating: reviewForm.rating,
-        comment: reviewForm.comment,
       });
-      
-      // Refresh reviews
-      const reviewsResponse = await reviewsAPI.getReviewsForBook(id);
-      setReviews(reviewsResponse.reviews);
-      
-      // Reset form
-      setReviewForm({ rating: 0, comment: '' });
-      setReviewError('');
-    } catch (error) {
-      setReviewError(error.response?.data?.message || 'Failed to submit review');
+
+      // Refresh reviews after successful submission
+      await fetchReviews();
+
+      // Show success message
+      alert("Review submitted successfully!");
+    } catch (err) {
+      alert("Failed to submit review. Please try again.");
+      console.error("Error submitting review:", err);
     } finally {
-      setSubmittingReview(false);
+      setReviewLoading(false);
     }
   };
 
-  const calculateAverageRating = () => {
-    if (reviews.length === 0) return 0;
-    return reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
-  };
+  const averageRating =
+    reviews.length > 0
+      ? (
+          reviews.reduce((sum, review) => sum + review.rating, 0) /
+          reviews.length
+        ).toFixed(1)
+      : 0;
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const renderStars = (rating) => {
+    return [...Array(5)].map((_, index) => (
+      <FiStar
+        key={index}
+        className={`h-5 w-5 ${
+          index < rating ? "text-yellow-400 fill-current" : "text-gray-300"
+        }`}
+      />
+    ));
   };
 
   if (loading) {
@@ -116,139 +97,96 @@ const BookDetails = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 text-lg">{error || 'Book not found'}</p>
-          <button 
-            onClick={() => navigate('/')}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          <p className="text-red-600 mb-4">{error || "Book not found"}</p>
+          <Link
+            to="/"
+            className="text-blue-600 hover:text-blue-700 flex items-center justify-center"
           >
+            <FiArrowLeft className="mr-2" />
             Back to Books
-          </button>
+          </Link>
         </div>
       </div>
     );
   }
 
-  const averageRating = calculateAverageRating();
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center text-blue-600 hover:text-blue-800 mb-6"
+        <Link
+          to="/"
+          className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6"
         >
-          <FaArrowLeft className="mr-2" />
+          <FiArrowLeft className="mr-2" />
           Back to Books
-        </button>
+        </Link>
 
-        {/* Book Information */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-8">
+        {/* Book Details */}
+        <div className="bg-white rounded-lg shadow-sm border p-8 mb-8">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{book.title}</h1>
-            <p className="text-xl text-gray-600 mb-4">by {book.author}</p>
-            
-            <div className="flex items-center mb-4">
-              <StarRating rating={averageRating} size="text-lg" />
-              <span className="ml-3 text-gray-600">
-                {averageRating > 0 ? `${averageRating.toFixed(1)} stars` : 'No ratings yet'} 
-                ({reviews.length} review{reviews.length !== 1 ? 's' : ''})
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              {book.title}
+            </h1>
+
+            <div className="flex items-center text-gray-600 mb-4">
+              <FiUser className="h-5 w-5 mr-2" />
+              <span className="text-lg">by {book.author}</span>
+            </div>
+
+            {/* Rating Summary */}
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="flex items-center">
+                {renderStars(Math.round(averageRating))}
+                <span className="ml-2 text-lg font-medium text-gray-700">
+                  {averageRating > 0 ? averageRating : "No ratings"}
+                </span>
+              </div>
+              <span className="text-gray-500">
+                ({reviews.length} {reviews.length === 1 ? "review" : "reviews"})
               </span>
             </div>
-          </div>
 
-          {book.description && (
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">Description</h2>
-              <p className="text-gray-700 leading-relaxed">{book.description}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Add Review Form */}
-        {isAuthenticated() && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Write a Review</h2>
-            
-            {reviewError && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md mb-4">
-                {reviewError}
+            {book.description && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Description
+                </h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {book.description}
+                </p>
               </div>
             )}
+          </div>
+        </div>
 
-            <form onSubmit={handleSubmitReview}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rating
-                </label>
-                <StarRating 
-                  rating={reviewForm.rating} 
-                  interactive={true} 
-                  onRatingChange={handleRatingChange}
-                />
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
-                  Comment (Optional)
-                </label>
-                <textarea
-                  id="comment"
-                  rows={4}
-                  value={reviewForm.comment}
-                  onChange={handleCommentChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Share your thoughts about this book..."
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submittingReview}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submittingReview ? 'Submitting...' : 'Submit Review'}
-              </button>
-            </form>
+        {/* Review Form */}
+        {isAuthenticated() && (
+          <div className="mb-8">
+            <ReviewForm onSubmit={handleReviewSubmit} loading={reviewLoading} />
           </div>
         )}
 
         {/* Reviews Section */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
             Reviews ({reviews.length})
           </h2>
 
-          {reviews.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">
-              No reviews yet. Be the first to review this book!
-            </p>
-          ) : (
+          {reviews.length > 0 ? (
             <div className="space-y-6">
               {reviews.map((review) => (
-                <div key={review._id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center">
-                      <FaUser className="text-gray-400 mr-2" />
-                      <span className="font-medium text-gray-900">
-                        {review.userId?.name || 'Anonymous'}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <FaCalendarAlt className="mr-1" />
-                      {formatDate(review.createdAt)}
-                    </div>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <StarRating rating={review.rating} size="text-sm" />
-                  </div>
-                  
-                  {review.comment && (
-                    <p className="text-gray-700 leading-relaxed">{review.comment}</p>
-                  )}
-                </div>
+                <ReviewCard key={review._id} review={review} />
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white rounded-lg shadow-sm border">
+              <p className="text-gray-600">
+                No reviews yet.{" "}
+                {isAuthenticated()
+                  ? "Be the first to review this book!"
+                  : "Login to write a review."}
+              </p>
             </div>
           )}
         </div>
